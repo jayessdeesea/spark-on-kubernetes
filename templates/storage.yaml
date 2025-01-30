@@ -1,0 +1,147 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: spark-work-dir-volume
+  namespace: {{ .Values.namespace }}
+  labels:
+    type: local
+    app: spark
+    role: work-dir
+spec:
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  capacity:
+    storage: {{ .Values.storage.volumes.work.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  local:
+    path: {{ .Values.storage.volumes.work.path | replace "\\" "/" }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: 
+                - "docker-desktop"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: spark-input-volume
+  namespace: {{ .Values.namespace }}
+  labels:
+    type: local
+    app: spark
+    role: input
+spec:
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  capacity:
+    storage: {{ .Values.storage.volumes.input.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadOnlyMany
+  local:
+    path: {{ .Values.storage.volumes.input.path | replace "\\" "/" }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: 
+                - "docker-desktop"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: spark-output-volume
+  namespace: {{ .Values.namespace }}
+  labels:
+    type: local
+    app: spark
+    role: output
+spec:
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  capacity:
+    storage: {{ .Values.storage.volumes.output.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  local:
+    path: {{ .Values.storage.volumes.output.path | replace "\\" "/" }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: 
+                - "docker-desktop"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spark-work-dir-claim
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: spark
+    role: work-dir
+spec:
+  storageClassName: local-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.storage.volumes.work.size }}
+  selector:
+    matchLabels:
+      role: work-dir
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spark-input-claim
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: spark
+    role: input
+spec:
+  storageClassName: local-storage
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: {{ .Values.storage.volumes.input.size }}
+  selector:
+    matchLabels:
+      role: input
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spark-output-claim
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: spark
+    role: output
+spec:
+  storageClassName: local-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.storage.volumes.output.size }}
+  selector:
+    matchLabels:
+      role: output

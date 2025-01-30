@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-history-server-deployment
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: spark-history-server
+    component: history-server
+    version: {{ .Values.spark.version | quote }}
+spec:
+  replicas: {{ .Values.historyServer.replicas }}
+  selector:
+    matchLabels:
+      app: spark-history-server
+  template:
+    metadata:
+      labels:
+        app: spark-history-server
+        component: history-server
+        version: {{ .Values.spark.version | quote }}
+      annotations:
+        prometheus.io/scrape: {{ .Values.monitoring.prometheus.scrape | quote }}
+        prometheus.io/port: {{ .Values.monitoring.prometheus.port | quote }}
+    spec:
+      serviceAccountName: {{ .Values.spark.serviceAccount.name }}
+      securityContext:
+        fsGroup: 185
+        runAsUser: 185
+        runAsGroup: 185
+      initContainers:
+        - name: init-spark-logs
+          image: busybox
+          command: ['sh', '-c', 'mkdir -p /mnt/spark-logs']
+          volumeMounts:
+            - name: spark-history-volume
+              mountPath: /mnt/spark-logs
+      containers:
+        - name: spark-history-server-container
+          image: "{{ .Values.spark.image.repository }}:{{ .Values.spark.image.tag }}"
+          imagePullPolicy: {{ .Values.spark.image.pullPolicy }}
+          command: ["/opt/spark/sbin/start-history-server.sh"]
+          ports:
+            - containerPort: {{ .Values.historyServer.service.port }}
+              name: ui
+          readinessProbe:
+            tcpSocket:
+              port: ui
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: ui
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          env:
+            - name: SPARK_NO_DAEMONIZE
+              value: "1"
+            - name: SPARK_PUBLIC_DNS
+              value: "localhost"
+            - name: SPARK_HISTORY_OPTS
+              value: "-Dspark.history.fs.logDirectory=/mnt/spark-logs"
+          volumeMounts:
+            - name: spark-history-volume
+              mountPath: /mnt/spark-logs
+          resources:
+            {{- toYaml .Values.historyServer.resources | nindent 12 }}
+      volumes:
+        - name: spark-history-volume
+          persistentVolumeClaim:
+            claimName: spark-work-dir-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-history-server-service
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: spark-history-server
+    component: history-server
+    version: {{ .Values.spark.version | quote }}
+spec:
+  type: {{ .Values.historyServer.service.type }}
+  ports:
+    - name: spark-history-ui
+      port: {{ .Values.historyServer.service.port }}
+      targetPort: ui
+  selector:
+    app: spark-history-server

@@ -1,0 +1,26 @@
+# Configuration rules for Spark on Kubernetes environment
+
+## System
+
+This environment is configured to run on Microsoft Windows using PowerShell as the default shell. The Kubernetes cluster is provided by Docker Desktop's built-in Kubernetes, and we're using the docker-desktop context for all Kubernetes operations.
+
+## Tools 
+
+Some tools that might be needed for Kubernetes operations are not available on this system.
+- the 'jq' JSON processor is not installed, so any JSON processing should use alternative methods.
+
+## Kubernetes 
+
+### Persistent Volumes
+
+| location | size | read only  | 
+| -------- | ---- | ---------- | 
+| `C:\kubernetes\storage\spark-input` | 256 GiB | yes |
+| `C:\kubernetes\storage\spark-output` | 4 GiB | no |
+| `C:\kubernetes\storage\spark-work` | 4 GiB | no | 
+
+For storage, we use the 'local-storage' storage class.
+
+### Apache Spark on Kubernetes
+
+All Spark applications are deployed to the 'spark-namespace' namespace by default.

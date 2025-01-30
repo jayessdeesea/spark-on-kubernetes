@@ -1,0 +1,95 @@
+# Global configuration
+nameOverride: ""
+fullnameOverride: ""
+namespace: spark-namespace
+
+# Common settings
+spark:
+  version: "3.5.0"
+  image:
+    repository: docker.io/apache/spark
+    tag: "3.5.0"
+    pullPolicy: IfNotPresent
+  
+  serviceAccount:
+    name: spark-service-account
+    create: true
+  
+  securityContext:
+    runAsUser: 185
+    runAsGroup: 185
+    fsGroup: 185
+
+# Storage configuration
+storage:
+  className: local-storage
+  nodeAffinity:
+    values: ["minikube", "docker-desktop"]
+  volumes:
+    input:
+      size: 256Gi
+      path: "\\run\\desktop\\mnt\\host\\c\\kubernetes\\storage\\spark-input"
+      readOnly: true
+    output:
+      size: 4Gi
+      path: "\\run\\desktop\\mnt\\host\\c\\kubernetes\\storage\\spark-output"
+      readOnly: false
+    work:
+      size: 4Gi
+      path: "\\run\\desktop\\mnt\\host\\c\\kubernetes\\storage\\spark-work"
+      readOnly: false
+
+# History server configuration
+historyServer:
+  enabled: true
+  replicas: 1
+  service:
+    type: LoadBalancer
+    port: 18080
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+# Kubernetes Spark configuration
+sparkOnK8s:
+  enabled: true
+  driver:
+    serviceAccountName: spark-service-account
+    podName: spark-driver
+    cores: "1"
+    memory: "1G"
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+  
+  executor:
+    instances: 2
+    cores: "1"
+    memory: "1G"
+    resources:
+      requests:
+        cpu: "1"
+        memory: 1Gi
+      limits:
+        cpu: "2"
+        memory: 2Gi
+  
+  kubernetes:
+    context: spark-context
+    waitAppCompletion: false
+    submissionCaCertFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    submissionOauthTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+# Monitoring configuration
+monitoring:
+  prometheus:
+    scrape: true
+    port: 22

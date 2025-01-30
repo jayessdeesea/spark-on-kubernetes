@@ -1,0 +1,15 @@
+apiVersion: v2
+name: spark-on-k8s
+description: A Helm chart for deploying Apache Spark on Kubernetes
+type: application
+version: 0.1.0
+appVersion: "3.5.0"
+keywords:
+  - spark
+  - kubernetes
+  - big data
+maintainers:
+  - name: jayessdeesea
+home: https://spark.apache.org/
+sources:
+  - https://github.com/apache/spark

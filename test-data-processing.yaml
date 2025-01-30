@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: spark-data-processing
+  namespace: spark-namespace
+spec:
+  restartPolicy: Never
+  serviceAccountName: spark-service-account
+  securityContext:
+    fsGroup: 185
+    runAsUser: 185
+    runAsGroup: 185
+  containers:
+  - name: spark
+    image: docker.io/apache/spark:3.5.0
+    command: 
+      - "/opt/spark/bin/spark-submit"
+    args:
+      - "--master"
+      - "k8s://https://kubernetes.docker.internal:6443"
+      - "--deploy-mode"
+      - "cluster"
+      - "--name"
+      - "spark-data-processing"
+      - "--class"
+      - "org.apache.spark.examples.sql.JavaSQLDataSourceExample"
+      - "--conf"
+      - "spark.kubernetes.container.image=docker.io/apache/spark:3.5.0"
+      - "--conf"
+      - "spark.kubernetes.namespace=spark-namespace"
+      - "--conf"
+      - "spark.kubernetes.authenticate.driver.serviceAccountName=spark-service-account"
+      - "--conf"
+      - "spark.eventLog.enabled=true"
+      - "--conf"
+      - "spark.eventLog.dir=/mnt/spark-logs"
+      - "--conf"
+      - "spark.kubernetes.driver.volumes.persistentVolumeClaim.spark-logs.options.claimName=spark-work-dir-claim"
+      - "--conf"
+      - "spark.kubernetes.driver.volumes.persistentVolumeClaim.spark-logs.mount.path=/mnt/spark-logs"
+      - "--conf"
+      - "spark.kubernetes.executor.volumes.persistentVolumeClaim.spark-logs.options.claimName=spark-work-dir-claim"
+      - "--conf"
+      - "spark.kubernetes.executor.volumes.persistentVolumeClaim.spark-logs.mount.path=/mnt/spark-logs"
+      - "--conf"
+      - "spark.kubernetes.driver.volumes.persistentVolumeClaim.input.options.claimName=spark-input-claim"
+      - "--conf"
+      - "spark.kubernetes.driver.volumes.persistentVolumeClaim.input.mount.path=/mnt/input"
+      - "--conf"
+      - "spark.kubernetes.driver.volumes.persistentVolumeClaim.input.mount.readOnly=true"
+      - "--conf"
+      - "spark.kubernetes.executor.volumes.persistentVolumeClaim.input.options.claimName=spark-input-claim"
+      - "--conf"
+      - "spark.kubernetes.executor.volumes.persistentVolumeClaim.input.mount.path=/mnt/input"
+      - "--conf"
+      - "spark.kubernetes.executor.volumes.persistentVolumeClaim.input.mount.readOnly=true"
+      - "--conf"
+      - "spark.kubernetes.driver.volumes.persistentVolumeClaim.output.options.claimName=spark-output-claim"
+      - "--conf"
+      - "spark.kubernetes.driver.volumes.persistentVolumeClaim.output.mount.path=/mnt/output"
+      - "--conf"
+      - "spark.kubernetes.executor.volumes.persistentVolumeClaim.output.options.claimName=spark-output-claim"
+      - "--conf"
+      - "spark.kubernetes.executor.volumes.persistentVolumeClaim.output.mount.path=/mnt/output"
+      - "--conf"
+      - "spark.sql.warehouse.dir=/mnt/output/spark-warehouse"
+      - "--conf"
+      - "spark.driver.extraJavaOptions=-Dinput.json.path=/mnt/input/people.json -Doutput.parquet.path=/mnt/output/people.parquet"
+      - "--conf"
+      - "spark.executor.extraJavaOptions=-Dinput.json.path=/mnt/input/people.json -Doutput.parquet.path=/mnt/output/people.parquet"
+      - "local:///opt/spark/examples/jars/spark-examples_2.12-3.5.0.jar"
+    volumeMounts:
+      - name: spark-logs
+        mountPath: /mnt/spark-logs
+      - name: input-volume
+        mountPath: /mnt/input
+        readOnly: true
+      - name: output-volume
+        mountPath: /mnt/output
+  volumes:
+    - name: spark-logs
+      persistentVolumeClaim:
+        claimName: spark-work-dir-claim
+    - name: input-volume
+      persistentVolumeClaim:
+        claimName: spark-input-claim
+    - name: output-volume
+      persistentVolumeClaim:
+        claimName: spark-output-claim
